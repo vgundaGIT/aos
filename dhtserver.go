@@ -1,4 +1,4 @@
-package DHTserver
+package main
 
 import (
 	"bufio"
@@ -41,6 +41,7 @@ type File struct {
 }
 
 func (ds *dserver) receiveRequests() error {
+	loggerPrint("started receiving requests")
 	for {
 		conn, err := ds.ln.Accept()
 
@@ -62,8 +63,9 @@ func (ds *dserver) serveRequest(conn net.Conn) {
 
 	msg, err := buf.ReadString('\n')
 	msg = strings.TrimSuffix(msg, "\n")
+	fmt.Println(msg)
 	if err != nil {
-		loggerPrint("Readingrequest failed from DHT client" + err.Error())
+		loggerPrint("Reading request failed from DHT client" + err.Error())
 		//May be send a failure message to the client
 		return
 	}
@@ -73,6 +75,9 @@ func (ds *dserver) serveRequest(conn net.Conn) {
 		loggerPrint("Unmarshalling request message error at server" + err.Error())
 		return
 	}
+
+	loggerPrint("request is ")
+	fmt.Println(req)
 
 	switch req.Type {
 	case "Deactivate":
@@ -99,6 +104,7 @@ func (ds *dserver) serveRequest(conn net.Conn) {
 			loggerPrint("Unmarshalling failed to get served files")
 			return
 		}
+
 		ds.PeerDetails.mx.Lock()
 		clientAddr := newReq.NodeIP + ":" + newReq.NodePort
 		_, present := ds.PeerDetails.fileHostsDir[clientAddr]
@@ -111,6 +117,8 @@ func (ds *dserver) serveRequest(conn net.Conn) {
 		ds.PeerDetails.fileHostsDir[clientAddr] = newReq.Files
 
 		ds.PeerDetails.mx.Unlock()
+
+		debugger("set of files are  ", ds.PeerDetails.fileHostsDir)
 
 	case "FileLocation":
 		var requiredNode Address
@@ -163,6 +171,8 @@ func main() {
 	}
 
 	hashTableServer := dserver{ln: server}
+	hashTableServer.PeerDetails.fileHostsDir = make(map[string][]string)
+	hashTableServer.PeerDetails.activePeers = make(map[string]bool)
 
 	//Start receiving requests
 	hashTableServer.receiveRequests()
@@ -174,4 +184,8 @@ func main() {
 func loggerPrint(s string) {
 	fmt.Println(s)
 	log.Println(s)
+}
+
+func debugger(desc string, content interface{}) {
+	fmt.Printf(desc+" %v ", content)
 }

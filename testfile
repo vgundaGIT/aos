@@ -1,0 +1,4 @@
+./main -folder="file_dir_1" -port=8080 &
+./main -folder="file_dir_4" -port=8083 -download=1 &
+./main -folder="file_dir_5" -port=8084 -download=1 &
+./main -folder="file_dir_6" -port=8085 -download=1 &
