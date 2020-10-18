@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -139,6 +140,8 @@ func (d DHTClient) updateDHT(s *Server) {
 //String is the ip address and error can be nil or anything else
 func (d DHTClient) doGetFileLocation(fileName string) (NodeAddress, error) {
 
+	loggerPrint("Getting file location")
+
 	//Marshalling here because there are no endpoints
 	fileLocReq := FileLocationReq{ReqType: "FileLocation", File: fileName}
 
@@ -152,6 +155,8 @@ func (d DHTClient) doGetFileLocation(fileName string) (NodeAddress, error) {
 	}
 
 	byteArray = append(byteArray, '\n')
+
+	loggerPrint("byte array for getting file location is " + string(byteArray))
 
 	//send this byte array to DHT node and receive the response
 	d.conn.Write(byteArray)
@@ -292,9 +297,10 @@ func (g GeneralClient) downloadFile(fileName string, d DHTClient) error {
 		receivedBytes += g.readBufferSize
 	}
 
-	debugger("receivedBytes so far", receivedBytes)
+	debugger("receivedBytes so far "+strconv.FormatInt(receivedBytes, 10)+" for file ", fileName)
 
-	loggerPrint("Completed downloading the file")
+	loggerPrint("receivedBytes so far " + strconv.FormatInt(receivedBytes, 10) + " for file " + fileName)
+	loggerPrint("Completed downloading the file " + fileName)
 
 	//Recalculate md5sum
 
@@ -391,7 +397,7 @@ func (s *Server) messageDHT() error {
 	return nil
 }
 
-func (s *Server) receiveRequests() error {
+func (s *Server) receiveRequests(wg *sync.WaitGroup) error {
 	loggerPrint("Started receiving requests")
 	for {
 		conn, err := s.ln.Accept()
@@ -403,6 +409,8 @@ func (s *Server) receiveRequests() error {
 		//Start a go routine that receives incoming requests
 		go s.serveRequest(conn)
 	}
+	wg.Done()
+	return nil
 }
 
 func (s *Server) serveRequest(conn net.Conn) {
@@ -540,35 +548,6 @@ func debugger(desc string, content interface{}) {
 /****************************************** Main ***********************************************************/
 
 func main() {
-	// fmt.Println("Hello World")
-	// c := Client{
-	// 	serverIP:   "127.0.0.1",
-	// 	serverPort: "8080",
-	// }
-
-	// c.Connect()
-	// c.Disconnect()
-	// c.Upload([]byte{1, 2, 3})
-
-	// d := DHTClient{Client: Client{serverIP: "localhost", serverPort: "27001"}}
-
-	// d.Connect()
-	// //d.doGetFileList()
-	// loc, err := d.doGetFileLocation("testfile")
-
-	// if err != nil {
-	// 	fmt.Println("Error getting file location" + err.Error())
-	// }
-
-	// fmt.Println(loc)
-
-	//Create general client and request files
-
-	//Create dht client
-
-	//Create server and run it in the background
-
-	//No compilation issues :)
 
 	//0 .Read server directory from command line and the file to download(useful for testing)
 	serverPort := flag.String("port", "8080", "server's port")
@@ -576,6 +555,13 @@ func main() {
 	fileToDownload := flag.String("download", "NA", "file to download")
 
 	flag.Parse()
+
+	logf, err := os.OpenFile(*nodeDir+"/logfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer logf.Close()
+	log.SetOutput(logf)
 
 	//1. Create DHT Client => lets make this first!!
 
@@ -586,7 +572,7 @@ func main() {
 	//1. Start server
 	server := Server{ip: "localhost", port: *serverPort, directory: *nodeDir, transferBufferSize: 1024}
 
-	err := server.populateListOfFiles()
+	err = server.populateListOfFiles()
 
 	if err != nil {
 		loggerPrint("Error populating list of files in server directory " + err.Error())
@@ -602,18 +588,19 @@ func main() {
 		return
 	}
 
-	go server.receiveRequests()
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go server.receiveRequests(&wg)
 
 	//2a. Create General client
 	client := GeneralClient{directory: *nodeDir, Client: Client{readBufferSize: 1024}}
 
 	if *fileToDownload != "NA" {
-
+		time.Sleep(10 * time.Second)
 		//3. Download the file obtained from the terminal
-		client.downloadFile(*fileToDownload, dhtClient)
-
+		go client.downloadFile(*fileToDownload, dhtClient)
 	}
 
-	time.Sleep(2 * time.Minute)
-
+	wg.Wait()
 }

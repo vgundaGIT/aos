@@ -1,0 +1,16 @@
+rm fdir2/1
+rm fdir3/2
+rm fdir4/3
+rm fdir5/4
+rm fdir6/5
+rm fdir7/6
+rm fdir8/7
+rm fdir1/logfile
+rm fdir2/logfile
+rm fdir3/logfile
+rm fdir4/logfile
+rm fdir5/logfile
+rm fdir6/logfile
+rm fdir7/logfile
+rm fdir8/logfile
+

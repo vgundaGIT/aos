@@ -1,4 +1,9 @@
-./main -folder="file_dir_1" -port=8080 &
-./main -folder="file_dir_4" -port=8083 -download=1 &
-./main -folder="file_dir_5" -port=8084 -download=1 &
-./main -folder="file_dir_6" -port=8085 -download=1 &
+./peer -folder="fdir1" -port=8080 &
+./peer -folder="fdir2" -port=8082 -download=1 &
+./peer -folder="fdir3" -port=8083 -download=2 &
+./peer -folder="fdir4" -port=8084 -download=3 &
+./peer -folder="fdir5" -port=8085 -download=4 &
+./peer -folder="fdir6" -port=8086 -download=5 &
+./peer -folder="fdir7" -port=8087 -download=6 &
+./peer -folder="fdir8" -port=8088 -download=7 &
+
